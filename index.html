@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#080d1a">
+<meta name="description" content="NakaKgolo: seed and recovery session tracker with a built-in simulator. Works offline.">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="NakaKgolo">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" sizes="512x512" href="icons/icon-512.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<title>NakaKgolo — Floating Multitasking Suite</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<div id="login-overlay">
+  <form id="login-card" novalidate>
+    <h2>🎯 NakaKgolo</h2>
+    <p class="login-msg" id="login-msg"></p>
+    <div class="form-group">
+      <label for="login-user">Username</label>
+      <input type="text" id="login-user" autocomplete="username" autocapitalize="none" spellcheck="false" required>
+    </div>
+    <div class="form-group">
+      <label for="login-pass">Password</label>
+      <input type="password" id="login-pass" autocomplete="current-password" required>
+    </div>
+    <div class="form-group hidden" id="confirm-group">
+      <label for="login-pass2">Confirm password</label>
+      <input type="password" id="login-pass2" autocomplete="new-password">
+    </div>
+    <p class="login-error" id="login-error" role="alert"></p>
+    <button type="submit" class="btn btn-win" id="login-submit">Login</button>
+    <button type="button" class="link-btn" id="login-reset">Reset login on this device</button>
+  </form>
+</div>
+
+<div id="float-titlebar">
+  <span>📱 NakaKgolo · Floating window</span>
+  <div class="float-controls">
+    <button type="button" class="float-btn" onclick="toggleFloatingMode(false)" title="Dock to full screen" aria-label="Dock to full screen">✕</button>
+  </div>
+</div>
+
+<div id="app-container" class="hidden">
+  <div id="navbar">
+    <div style="display:flex; align-items:center; gap:8px;">
+      <button class="nav-btn menu-btn" onclick="toggleMobileMenu()" id="menu-toggle-btn">☰ Menu</button>
+      <span style="font-weight:800; color:var(--gold); font-size:15px; letter-spacing:1px;">NakaKgolo Suite</span>
+    </div>
+    <div class="nav-links" id="nav-links-container">
+      <button class="nav-btn active" data-page="dashboard" onclick="switchPage('dashboard')">Dashboard</button>
+      <button class="nav-btn" data-page="analytics" onclick="switchPage('analytics')">Analytics</button>
+      <button class="nav-btn" data-page="reports" onclick="switchPage('reports')">Reports</button>
+      <button class="nav-btn" data-page="settings" onclick="switchPage('settings')">⚙️ Settings & Floating</button>
+      <button class="nav-btn" onclick="handleLogout()" style="color:var(--red)">Logout</button>
+    </div>
+  </div>
+
+  <div id="page-dashboard" class="app-page active" style="flex-direction:column; flex:1; overflow:hidden;">
+    <div id="topbar">
+      <div class="brand">🎯 NakaKgolo</div>
+      <div class="topstat balance-box" id="balance-box">
+        <span class="label">💰 Balance</span>
+        <span class="value" id="top-balance">1,000.00</span>
+      </div>
+      <div class="topstat" id="profit-box" style="border-color:#15803d">
+        <span class="label">📈 Total Profit</span>
+        <span class="value" style="color:var(--green)" id="top-profit">0.00</span>
+      </div>
+      <div class="topstat">
+        <span class="label">Phase</span>
+        <span class="value" id="top-phase" style="color:var(--blue)">SEED</span>
+      </div>
+      <div class="topstat">
+        <span class="label">Next Stake</span>
+        <span class="value" id="top-stake" style="color:var(--gold)">2.00</span>
+      </div>
+      <div class="topstat">
+        <span class="label">Total Loss</span>
+        <span class="value" style="color:var(--red)" id="top-tl">0.00</span>
+      </div>
+      <div class="topstat">
+        <span class="label">Gaps</span>
+        <span class="value" style="color:var(--gold)" id="top-gaps">0</span>
+      </div>
+      <div class="topstat">
+        <span class="label">Round</span>
+        <span class="value" style="color:var(--text2)" id="top-round">0</span>
+      </div>
+    </div>
+
+    <div id="alert-bar" role="alert"><span>⚠️</span><span id="alert-text"></span></div>
+
+    <div id="main">
+      <!-- LEFT -->
+      <div id="left-panel">
+        <div>
+          <div class="panel-title">Input Mode</div>
+          <div class="mode-tabs">
+            <button class="mode-tab active" onclick="setMode('manual')" id="tab-manual">Manual</button>
+            <button class="mode-tab" onclick="setMode('sim')" id="tab-sim">Sim</button>
+            <button class="mode-tab" onclick="setMode('hybrid')" id="tab-hybrid">Hybrid</button>
+          </div>
+        </div>
+
+        <div id="manual-controls">
+          <div class="phase-box seed-box" id="seed-box">
+            <div class="phase-box-title">🌱 Seed Phase</div>
+            <button class="btn btn-win" onclick="doAction('win')" id="btn-win">✅ Win</button>
+            <button class="btn btn-loss" onclick="doAction('loss')" id="btn-loss">❌ Loss</button>
+            <button class="btn btn-gap" onclick="doAction('gap')" id="btn-gap">⭕ Gap (Skip)</button>
+          </div>
+
+          <div class="phase-box rec-box" id="rec-box">
+            <div class="phase-box-title">
+              <span class="pulse-dot" id="rec-dot" style="display:none"></span>
+              🔄 Recovery Phase
+            </div>
+            <button class="btn btn-enter-rec" onclick="enterRecovery()" id="btn-enter-rec">🚀 Enter Recovery</button>
+            <div class="divider-line">then record result</div>
+            <button class="btn btn-rwon" onclick="doAction('rwon')" id="btn-rwon" disabled>🏆 Recovery Win</button>
+            <button class="btn btn-rloss" onclick="doAction('rloss')" id="btn-rloss" disabled>💀 Recovery Loss</button>
+          </div>
+        </div>
+
+        <div class="sim-config" id="sim-config">
+          <div class="panel-title">Simulation Config</div>
+          <div class="slider-row">
+            <label>Seed Win % <span id="sv-win">30%</span></label>
+            <input type="range" min="5" max="70" value="30" id="sl-win" oninput="syncSliders()">
+          </div>
+          <div class="slider-row">
+            <label>Seed Loss % <span id="sv-loss">55%</span></label>
+            <input type="range" min="5" max="85" value="55" id="sl-loss" oninput="syncSliders()">
+          </div>
+          <div class="slider-row">
+            <label>Seed Gap % <span id="sv-gap">15%</span></label>
+            <input type="range" min="0" max="50" value="15" id="sl-gap" oninput="syncSliders()">
+          </div>
+          <div style="height:1px;background:var(--border);margin:4px 0"></div>
+          <div class="slider-row">
+            <label>Recovery Trigger % <span id="sv-rectrig">40%</span></label>
+            <input type="range" min="5" max="100" value="40" id="sl-rectrig" oninput="syncSliders()">
+          </div>
+          <div class="slider-row">
+            <label>Recovery Win % <span id="sv-recwin">50%</span></label>
+            <input type="range" min="10" max="80" value="50" id="sl-recwin" oninput="syncSliders()">
+          </div>
+          <div class="param-row">
+            <label>Rounds</label>
+            <input type="number" id="sim-rounds" value="200" min="1" max="50000">
+          </div>
+          <button class="btn btn-sim" onclick="runSimulation()" id="btn-run-sim">▶ Run Simulation</button>
+          <div class="sim-progress" id="sim-prog"><div class="sim-progress-bar" id="sim-prog-bar"></div></div>
+        </div>
+
+        <div>
+          <div class="panel-title">Parameters</div>
+          <div class="param-row"><label>Starting Capital</label><input type="number" id="p-capital" value="1000" step="10" min="10"></div>
+          <div class="param-row"><label>Initial Stake</label><input type="number" id="p-stake" value="2" step="0.01" min="0.01"></div>
+          <div class="param-row"><label>Return Rate</label><input type="number" id="p-rate" value="0.90" step="0.01" min="0.01" max="5"></div>
+          <div class="param-row"><label>DP per Gap</label><input type="number" id="p-dp" value="0.10" step="0.01" min="0"></div>
+          <div class="param-row"><label>TL Alert Threshold</label><input type="number" id="p-threshold" value="50" step="1" min="0"></div>
+        </div>
+
+        <div style="display:flex;flex-direction:column;gap:6px">
+          <button class="btn btn-danger" onclick="resetSession()">🔄 Reset Session</button>
+          <button class="btn btn-export" onclick="exportCSV()">📥 Export CSV</button>
+        </div>
+      </div>
+
+      <!-- CENTER -->
+      <div id="center-panel" style="position:relative">
+        <div id="recovery-banner">
+          <div class="rec-inner">
+            <div class="rec-pill">🔄 RECOVERY ACTIVE</div>
+            <div>
+              <div class="rec-stake-big" id="rec-stake-big">—</div>
+              <div class="rec-formula" id="rec-formula"></div>
+            </div>
+            <div class="rec-hint">
+              Place <strong style="color:var(--gold)" id="rec-remind">—</strong> on your bet<br>
+              then click <strong style="color:var(--blue)">Recovery Win</strong> or <strong style="color:var(--purple)">Recovery Loss</strong>
+            </div>
+          </div>
+        </div>
+        <div class="table-info" id="table-info"></div>
+        <div id="table-container">
+          <table id="round-table">
+            <thead><tr>
+              <th>#</th><th>Phase</th><th>Action</th><th>Stake</th><th>P/L</th><th>Balance</th><th>TL</th><th>Total Profit</th>
+            </tr></thead>
+            <tbody id="table-body">
+              <tr id="no-data"><td colspan="8">No rounds yet — start by clicking Win, Loss, or Gap.</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="bankrupt-overlay" id="bankrupt-overlay">
+          <div>💀 BANKRUPT</div>
+          <div style="font-size:13px;font-weight:400;color:var(--text2)">Balance depleted. Reset to continue.</div>
+        </div>
+      </div>
+
+      <!-- RIGHT -->
+      <div id="right-panel">
+        <div class="panel-title">📊 Analytics Dashboard</div>
+        <div class="stat-grid">
+          <div class="stat-card"><span class="s-label">Total Rounds</span><span class="s-val" id="s-rounds" style="color:var(--text)">0</span></div>
+          <div class="stat-card"><span class="s-label">Total Profit</span><span class="s-val" id="s-totalprofit" style="color:var(--green)">0.00</span></div>
+          <div class="stat-card"><span class="s-label">Max TL</span><span class="s-val" id="s-maxtl" style="color:var(--red)">0.00</span></div>
+          <div class="stat-card"><span class="s-label">Max Drawdown</span><span class="s-val" id="s-maxdd" style="color:var(--red)">0.00</span></div>
+          <div class="stat-card"><span class="s-label">Avg Profit/Rnd</span><span class="s-val" id="s-avg" style="color:var(--gold)">0.00</span></div>
+          <div class="stat-card"><span class="s-label">Recovery Success</span><span class="s-val" id="s-recsucc" style="color:var(--blue)">—</span></div>
+          <div class="stat-card"><span class="s-label">Seed Wins</span><span class="s-val" id="s-seedwins" style="color:var(--green)">0</span></div>
+          <div class="stat-card"><span class="s-label">Recovery Wins</span><span class="s-val" id="s-recwins" style="color:var(--blue)">0</span></div>
+        </div>
+        <div class="chart-wrap"><div class="chart-title">💰 Balance Over Time</div><canvas id="ch-balance"></canvas></div>
+        <div class="chart-wrap"><div class="chart-title">📈 Total Profit</div><canvas id="ch-profit"></canvas></div>
+        <div class="chart-wrap"><div class="chart-title">📉 Total Loss (TL)</div><canvas id="ch-tl"></canvas></div>
+        <div class="chart-wrap"><div class="chart-title">🎲 Recovery Stakes</div><canvas id="ch-recstake"></canvas></div>
+      </div>
+    </div>
+
+    <div id="bottom-bar">
+      <div class="bottom-stats-group">
+        <div class="bstat"><span class="bl">Balance</span><span class="bv" style="color:var(--green)" id="b-bal">1,000.00</span></div>
+        <div class="bstat"><span class="bl">Total Profit</span><span class="bv" style="color:var(--green)" id="b-profit">0.00</span></div>
+        <div class="bstat"><span class="bl">Max TL</span><span class="bv" style="color:var(--red)" id="b-maxtl">0.00</span></div>
+        <div class="bstat"><span class="bl">Max Drawdown</span><span class="bv" style="color:var(--red)" id="b-maxdd">0.00</span></div>
+        <div class="bstat"><span class="bl">Rec. Success</span><span class="bv" style="color:var(--blue)" id="b-recsucc">—</span></div>
+        <div class="bstat"><span class="bl">Rounds</span><span class="bv" id="b-rounds">0</span></div>
+        <div class="bstat"><span class="bl">Wins</span><span class="bv" style="color:var(--green)" id="b-wins">0</span></div>
+        <div class="bstat"><span class="bl">Losses</span><span class="bv" style="color:var(--red)" id="b-losses">0</span></div>
+        <div class="bstat"><span class="bl">Consec. Losses</span><span class="bv" style="color:var(--red)" id="b-consec">0</span></div>
+      </div>
+      <div class="crashing-ctrl">powered by Cratto Ctrl</div>
+    </div>
+  </div>
+
+  <div id="page-analytics" class="app-page">
+    <div class="content-page">
+      <div class="card">
+        <h3>📊 Deep Analytics Hub</h3>
+        <p style="color:var(--text2)">Comprehensive statistical overview of seed performance versus recovery strategies.</p>
+        <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap:12px; margin-top:10px;">
+          <div class="stat-card" style="padding:15px"><span class="s-label">Total Gaps Recorded</span><span class="s-val" id="an-gaps" style="color:var(--gold); font-size:18px;">0</span></div>
+          <div class="stat-card" style="padding:15px"><span class="s-label">Total Recovery Attempts</span><span class="s-val" id="an-recattempts" style="color:var(--purple); font-size:18px;">0</span></div>
+          <div class="stat-card" style="padding:15px"><span class="s-label">Peak Capital Balance</span><span class="s-val" id="an-peak" style="color:var(--green); font-size:18px;">1,000.00</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="page-reports" class="app-page">
+    <div class="content-page">
+      <div class="card">
+        <h3>📈 Detailed Session Reports</h3>
+        <p style="color:var(--text2)">Analyze your historical betting data, performance distributions, and risk curves across simulation runs.</p>
+        <button class="btn btn-export" style="width:200px;" onclick="exportCSV()">Download Complete CSV Report</button>
+      </div>
+    </div>
+  </div>
+
+    <div id="page-settings" class="app-page">
+    <div class="content-page">
+      <div class="card settings-card">
+        <h3>⚙️ Settings</h3>
+
+        <section class="settings-section">
+          <h4>Install the app</h4>
+          <p class="muted" id="install-status">Checking install options…</p>
+          <button type="button" class="btn btn-win btn-auto hidden" id="install-btn" onclick="installApp()">📲 Install NakaKgolo</button>
+          <p class="muted" id="offline-status">Checking offline support…</p>
+        </section>
+
+        <section class="settings-section">
+          <h4>Floating window</h4>
+          <p class="muted">Opens the suite in a movable, resizable panel inside the app. Drag the blue top bar to move it, and drag the bottom-right corner to resize.</p>
+          <button type="button" class="btn btn-sim btn-auto" id="float-toggle-btn" onclick="toggleFloatingMode()">📱 Enable Floating Window</button>
+        </section>
+
+        <section class="settings-section">
+          <h4>Data</h4>
+          <p class="muted" id="storage-note">Your session is saved on this device after every round.</p>
+          <div class="btn-row">
+            <button type="button" class="btn btn-export" onclick="exportCSV()">📥 Download CSV Report</button>
+            <button type="button" class="btn btn-danger" onclick="resetSession()">🔄 Reset Session</button>
+          </div>
+        </section>
+
+        <section class="settings-section">
+          <h4>Login</h4>
+          <p class="muted">The login locks the app on this device. It does not encrypt your data, and anyone with access to this browser profile can reset it.</p>
+          <button type="button" class="btn btn-danger btn-auto" onclick="resetLogin()">🔑 Reset login</button>
+        </section>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="float-grip"></div>
+
+<script src="chart.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
